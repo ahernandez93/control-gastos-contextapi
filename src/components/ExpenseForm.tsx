@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import type { DraftExpense, Value } from "../types";
 import { categories } from "../data/categories";
 import { DatePicker } from 'react-date-picker';
@@ -16,7 +16,15 @@ export default function ExpenseForm() {
     })
 
     const [error, setError] = useState('')
-    const { dispatch } = useBudget()
+    const { dispatch, state } = useBudget()
+
+    useEffect(() => {
+        if (state.editingId) {
+            const editingExpense = state.expenses.filter(currentExpense => currentExpense.id === state.editingId)[0]
+            setExpense(editingExpense)
+        }
+
+    }, [state.editingId, state.expenses])
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target
@@ -43,8 +51,12 @@ export default function ExpenseForm() {
             return
         }
 
-        //Agregar un nuevo gasto
-        dispatch({ type: 'add-expense', payload: { expense } })
+        //Agregar o actualizar el gasto
+        if (state.editingId) {
+            dispatch({ type: 'update-expense', payload: { expense: { id: state.editingId, ...expense } } })
+        } else {
+            dispatch({ type: 'add-expense', payload: { expense } })
+        }
 
         //Reiniciar el state
         setExpense({
@@ -58,7 +70,7 @@ export default function ExpenseForm() {
     return (
         <form className="space-y-5" onSubmit={handleSubmit}>
             <legend className="uppercase text-center text-2xl font-black border-b-4 border-blue-500 py-2">
-                Nuevo Gasto
+                {state.editingId ? 'Actualizar Gasto' : 'Nuevo Gasto'}
             </legend>
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -143,7 +155,7 @@ export default function ExpenseForm() {
             <input
                 type="submit"
                 className="bg-blue-600 cursor-pointer w-full p-2 text-white uppercase font-bold rounded-lg text-center"
-                value={"Registrar Gasto"}
+                value={state.editingId ? 'Actualizar Gasto' : 'Registrar Gasto'}
             />
 
         </form>
